@@ -21,6 +21,101 @@ import re
 from typing import List
 
 
+# ── Lightweight English stemmer / 规则词形归并 ──
+# Sorted by suffix length (longest first) to avoid partial matches.
+# Only covers the most common regular suffixes — zero external dependencies.
+# 按后缀长度排序（长优先），避免部分匹配。
+# 只覆盖最常见的规则后缀，零外部依赖。
+
+_STEM_RULES = [
+    ("isation", 7),  # organisational
+    ("ization", 7),  # organizational
+    ("isation", 7),  # civilisation
+    ("ability", 7),  # capability → capabil
+    ("atively", 7),  # alternatively
+    ("fulness", 7),  # usefulness
+    ("lessly", 7),   # relentlessly
+    ("ements", 6),   # achievements
+    ("ations", 6),   # graduations
+    ("nesses", 6),   # businesses
+    ("ifying", 6),   # clarifying
+    ("nesses", 6),   # businesses
+    ("lessly", 6),   # needlessly
+    ("ments", 5),    # agreements
+    ("fully", 5),    # carefully
+    ("ingly", 5),    # increasingly
+    ("ative", 5),    # informative
+    ("ition", 5),    # condition
+    ("ation", 5),    # graduation
+    ("eness", 5),    # awareness
+    ("ising", 5),    # generalising
+    ("izing", 5),    # generalizing
+    ("ities", 5),    # capabilities
+    ("ively", 5),    # effectively
+    ("esses", 5),    # businesses
+    ("ments", 5),    # treatments
+    ("fully", 5),    # carefully
+    ("ment", 4),     # achievement
+    ("able", 4),     # capable
+    ("ness", 4),     # business
+    ("less", 4),     # relentless
+    ("ible", 4),     # possible
+    ("like", 4),     # business-like
+    ("tion", 4),     # graduation
+    ("sion", 4),     # admission
+    ("ally", 4),     # gradually
+    ("ised", 4),     # recognised
+    ("ized", 4),     # recognized
+    ("ised", 4),     # analysed
+    ("ings", 4),     # findings
+    ("ived", 4),     # received
+    ("ing", 3),      # running
+    ("ied", 3),      # applied
+    ("ily", 3),      # happily
+    ("est", 3),      # biggest
+    ("ful", 3),      # helpful
+    ("ous", 3),      # curious
+    ("ate", 3),      # graduate → graduat
+    ("ive", 3),      # creative
+    ("ity", 3),      # activity
+    ("ory", 3),      # laboratory
+    ("ial", 3),      # industrial
+    ("ess", 3),      # business
+    ("ant", 3),      # important
+    ("ent", 3),      # different
+    ("ist", 3),      # artist
+    ("ism", 3),      # capitalism
+    ("ity", 3),      # capability
+    ("ive", 3),      # creative
+    ("tor", 3),      # operator
+    ("ics", 3),      # economics
+    ("ist", 3),      # artist
+    ("ing", 3),      # doing
+    ("ed", 2),       # graduated → graduat
+    ("ly", 2),       # carefully
+    ("er", 2),       # teacher
+    ("or", 2),       # actor
+    ("al", 2),       # industrial
+    ("es", 2),       # boxes
+    ("ic", 2),       # academic
+    ("s", 1),        # degrees
+]
+
+
+def _stem(word: str) -> str:
+    """Apply lightweight rule-based stemming / 规则词形归并
+
+    Only strips common English suffixes. Preserves the root.
+    E.g.: graduated → graduat, degrees → degree, running → running
+    """
+    if len(word) <= 3:
+        return word
+    for suffix, cut in _STEM_RULES:
+        if len(word) > cut + 2 and word.endswith(suffix):
+            return word[:-cut]
+    return word
+
+
 def extract_tokens(text: str) -> List[str]:
     """Extract raw structural tokens from text / 从文本中提取原始结构信号
 
@@ -58,7 +153,7 @@ def extract_tokens(text: str) -> List[str]:
             j = i
             while j < len(text) and text[j].isascii() and text[j].isalpha():
                 j += 1
-            tokens.append(text[i:j].lower())
+            tokens.append(_stem(text[i:j].lower()))
             i = j
             continue
         # Number string / 数字串

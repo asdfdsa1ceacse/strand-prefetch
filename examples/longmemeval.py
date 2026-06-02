@@ -77,7 +77,8 @@ def evaluate_question(q: dict, entities: list[dict], top_k: int = 15,
 
     signal = extract_dna_signal(question)
     matches = magnetic_resonance(signal, all_ents, top_k=top_k,
-                                 idf_weights=idf_weights)
+                                 idf_weights=idf_weights,
+                                 enable_chunking=True)
     dt = (time.perf_counter() - t0) * 1000
 
     # Check recall / 检查召回
@@ -121,9 +122,11 @@ def main():
     parser.add_argument("--data",
         default=os.path.expanduser("~/gbrain/test/fixtures/longmemeval-nightly.jsonl"),
         help="LongMemEval JSONL path")
-    parser.add_argument("--top-k", type=int, default=15)
+    parser.add_argument("--top-k", type=int, default=25)
     parser.add_argument("--full-dataset",
         help="Path to full 500-question dataset (download from HuggingFace)")
+    parser.add_argument("--quiet", action="store_true",
+        help="Suppress per-question output / 关闭逐题输出")
     args = parser.parse_args()
 
     questions = load_questions(args.data)
@@ -153,11 +156,12 @@ def main():
             by_type[qtype] = []
         by_type[qtype].append(r)
 
-        hits_str = f"{r['hits']}/{r['answer_sessions']}"
-        print(f"  {r['qid']:15s} {qtype:25s} "
-              f"recall={r['recall']:.0%} precision={r['precision']:.0%} "
-              f"F1={r['f1']:.3f} [{r['latency_ms']:5.0f}ms] "
-              f"top={r['top_match'][:25]:25s}")
+        if not args.quiet:
+            hits_str = f"{r['hits']}/{r['answer_sessions']}"
+            print(f"  {r['qid']:15s} {qtype:25s} "
+                  f"recall={r['recall']:.0%} precision={r['precision']:.0%} "
+                  f"F1={r['f1']:.3f} [{r['latency_ms']:5.0f}ms] "
+                  f"top={r['top_match'][:25]:25s}")
 
     # Overall summary / 总览
     print(f"\n{'='*60}")
