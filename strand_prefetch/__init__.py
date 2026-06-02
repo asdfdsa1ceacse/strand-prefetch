@@ -28,8 +28,9 @@ Quick start / 快速开始::
     print(result)
 """
 
+from typing import Optional
 from .dna import extract_dna_signal, extract_tokens
-from .resonance import coordinate_resonance, magnetic_resonance
+from .resonance import coordinate_resonance, magnetic_resonance, compute_idf
 from .wormhole import wormhole_expand
 from .render import _format_for_injection, set_budget
 
@@ -38,6 +39,7 @@ def prefetch(
     query: str,
     entities: list[dict],
     top_k: int = 15,
+    idf_weights: Optional[dict[str, float]] = None,
 ) -> tuple[str, list[dict], list[dict]]:
     """Run the full prefetch pipeline / 运行完整预取管线
 
@@ -51,6 +53,9 @@ def prefetch(
         query: User query string / 用户查询字符串
         entities: List of entity dicts (each must have "text") / 实体字典列表
         top_k: Number of matches to return (default 15) / 返回匹配数
+        idf_weights: Optional IDF weights from compute_idf(). When provided,
+                     distinctive tokens get higher weight in exact-match layer.
+                     可选 IDF 权重。提供时特异性词在精确匹配层获得更高权重。
 
     Returns:
         (injection_text, matches, [])  # replicas is empty in pure mode
@@ -60,7 +65,7 @@ def prefetch(
         return ("", [], [])
 
     query_signal = extract_dna_signal(query)
-    matches = magnetic_resonance(query_signal, entities, top_k=top_k)
+    matches = magnetic_resonance(query_signal, entities, top_k=top_k, idf_weights=idf_weights)
     if not matches:
         return ("", [], [])
 
