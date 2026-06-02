@@ -76,14 +76,17 @@ expected_hits = {
 precision_scores = []
 for q, expected_prefixes in expected_hits.items():
     r, matches, _ = prefetch(q, ALL_ENTS)
-    hits = 0
-    for m in matches:
+    p5 = 0
+    for i, m in enumerate(matches):
+        if i >= 5:
+            break
         mid = m.get("id", "")
         if any(mid.startswith(ep) for ep in expected_prefixes):
-            hits += 1
-    p5 = hits / max(len(matches), 1)
-    precision_scores.append(p5)
-    print(f"    {q:20s} → {hits}/{len(matches)} hits = P@5 = {p5:.0%}")
+            p5 += 1
+    precision_scores.append(p5 / 5)
+    # 全部匹配的总精度（top-15 实际数）
+    all_hits = sum(1 for m in matches if any(m.get("id","").startswith(ep) for ep in expected_prefixes))
+    print(f"    {q:20s} → top-5: {p5}/5 = {p5/5:.0%} | top-{len(matches)}: {all_hits}/{len(matches)} = {all_hits/max(len(matches),1):.0%}")
 
 avg_precision = statistics.mean(precision_scores)
 print(f"\n    ═ 平均 P@5: {avg_precision:.0%}")
