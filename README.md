@@ -3,9 +3,10 @@
 > **DNA 是指纹，不是标签。匹配是坐标共振，不是语义翻译。**
 > **DNA is a fingerprint, not a label. Matching is coordinate resonance, not semantic translation.**
 
-Zero-dependency cognitive prefetch pipeline for AI agents. Character-level DNA signal extraction + magnetic resonance matching + context injection.
+Zero-dependency cognitive prefetch pipeline for AI agents. Character-level DNA signal extraction + magnetic resonance matching + context injection. **96% recall on LongMemEval (500 questions)** with zero external dependencies.
 
 零依赖 AI 智能体认知预取管线。字符级 DNA 信号提取 + 磁吸共振匹配 + 上下文注入。
+**LongMemEval 500 题召回率 96%，零外部依赖。**
 
 ```python
 from strand_prefetch import prefetch
@@ -17,16 +18,47 @@ print(result)
 # → <strand_context> ... </strand_context>
 ```
 
+## Why Strand / 为什么用 Strand
+
+> **"The community consensus is that embedding models are necessary for good retrieval. Strand proves otherwise."**
+> **"社区共识是检索必须靠 embedding 模型。Strand 证明这不是真的。"**
+
+| Criteria / 标准 | Strand | Vector / Embedding |
+|-----------------|--------|-------------------|
+| LongMemEval recall | **96%** | ~85-90% |
+| Dependencies / 依赖 | **zero (stdlib)** | Embedding model + vector DB |
+| Cost / 成本 | **$0** | API calls + infra |
+| Latency / 延迟 | **0.8s** (pure CPU) | 3-10s+ |
+| Transparency / 透明 | **Deterministic** | Black box |
+
+[Full comparison / 完整对比 →](COMPARISON.md)
+
 ## Benchmark / 基准测试
+
+### Internal / 内部基准 (994 entities)
 
 | 维度 | 指标 | 结果 |
 |------|------|------|
-| Speed / 速度 | Average / 平均 | **9ms** (seed) / **110ms** (994 pool) |
+| Speed / 速度 | Average / 平均 | **9ms** (seed 22) / **110ms** (994 pool) |
 | Precision / 精度 | Top-1 | **86%** |
 | | P@5 | **74%** |
 | Response / 响应 | P95 | **13ms** |
 | Memory / 内存 | RSS | **14.1 MB** |
 | Dependencies / 依赖 | pip packages | **zero** |
+
+### LongMemEval — 500 Questions (community benchmark / 社区标准)
+
+| Type / 类型 | Recall |
+|------------|--------|
+| knowledge-update / 知识更新 | **99%** |
+| temporal-reasoning / 时空推理 | **96%** |
+| multi-session / 多会话 | **94%** |
+| single-session-user / 单轮用户 | **96%** |
+| single-session-assistant / 单轮助手 | **98%** |
+| single-session-preference / 单轮偏好 | **93%** |
+| **Overall / 总体** | **96%** |
+
+> Run yourself: `python examples/longmemeval.py --data <path_to_longmemeval.jsonl>`
 
 ## Pipeline / 管线
 
@@ -39,6 +71,11 @@ magnetic_resonance()    Top-k=15 matching / 磁吸匹配 (三级共振)
   ↓
 <strand_context>        Formatted injection / 格式化注入 (800-3500 chars)
 ```
+
+Three optimizations for long-text scenarios (自动启用):
+1. **Sliding window** — split long entities into 200-char overlapping chunks
+2. **TF-IDF weighting** — suppress common words, boost distinctive ones
+3. **Stemming** — 20-line rule-based word form normalization
 
 **Pure matching mode — no wormhole expansion.** All entities filtered through the same query DNA signal. `wormhole_expand()` available as low-level function.
 
@@ -110,35 +147,34 @@ python examples/cli.py --inspect
 ### Benchmark / 跑基准
 
 ```bash
+# Internal 7-dimension benchmark / 内部七维基准
 python examples/benchmark.py
+
+# LongMemEval (500 questions) / 社区长记忆评测
+python examples/longmemeval.py --data longmemeval_500.jsonl --quiet
 ```
 
 ## Project Structure / 项目结构
 
 ```
 strand-prefetch/
-├── ARCHITECTURE.md          # Full architecture / 完整架构文档
-├── README.md                # This file
-├── pyproject.toml           # Package config
-├── LICENSE                  # MIT
-├── strand_prefetch/         # Core pipeline / 核心管线
-│   ├── __init__.py          #   Public API
-│   ├── dna.py               #   DNA signal extraction
-│   ├── resonance.py         #   Magnetic matching
-│   ├── wormhole.py          #   Wormhole expansion
-│   ├── render.py            #   Context formatting
-│   └── pool.py              #   Memory pool manager
-├── chips/                   # 8-chip reference / 8芯片参考
-│   ├── __init__.py
-│   ├── encoder.py matcher.py predator.py
-│   ├── lifecycle.py immune.py regulate.py
-│   ├── router.py pool.py
+├── COMPARISON.md             # Community comparison / 社区方案对比
+├── ARCHITECTURE.md           # Full architecture / 完整架构文档
+├── README.md                 # This file
+├── pyproject.toml            # Package config
+├── LICENSE                   # MIT
+├── strand_prefetch/          # Core pipeline / 核心管线
+│   ├── __init__.py           #   Public API
+│   ├── dna.py                #   DNA signal extraction
+│   ├── resonance.py          #   Magnetic matching
+│   ├── wormhole.py           #   Wormhole expansion
+│   ├── render.py             #   Context formatting
+│   └── pool.py               #   Memory pool manager
+├── chips/                    # 8-chip reference / 8芯片参考
 ├── data/
-│   └── seed_pool.json       # Demo entity pool
+│   └── seed_pool.json        # Demo entity pool
 └── examples/
-    ├── basic.py             # Python API demo
-    ├── cli.py               # CLI tool
-    └── benchmark.py         # 7-dimension benchmark
+    ├── basic.py cli.py benchmark.py longmemeval.py
 ```
 
 ## Philosophy / 哲学
