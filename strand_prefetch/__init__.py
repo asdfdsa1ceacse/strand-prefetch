@@ -1,6 +1,7 @@
-"""Strand Prefetch — 字符级 DNA 信号留存 + 磁吸共振 + 虫洞展开。
+"""Strand Prefetch — 字符级 DNA 信号留存 + 磁吸共振。
 
 零外部依赖，纯 Python stdlib。
+纯匹配模式，无虫洞展开。所有注入实体经同一套查询 DNA 信号筛选。
 
 快速开始::
 
@@ -27,22 +28,24 @@ from .render import _format_for_injection, set_budget
 def prefetch(
     query: str,
     entities: list[dict],
-    top_k: int = 5,
-    max_hops: int = 1,
+    top_k: int = 15,
 ) -> tuple[str, list[dict], list[dict]]:
-    """完整 prefetch 管线：信号留存 → 磁吸匹配 → 虫洞展开 → 上下文注入。
+    """完整 prefetch 管线：信号留存 → 磁吸匹配 → 上下文注入。
+
+    纯匹配模式，无虫洞展开。
+    top_k=15 保证足够的上下文注入量，同时不引入二跳噪音。
+    所有注入实体都经过同一套查询 DNA 信号筛选。
 
     参数:
         query: 用户查询字符串
         entities: 实体池列表（每个实体需含 text 字段）
-        top_k: 初始匹配数量（默认 5）
-        max_hops: 虫洞展开跳数（默认 1，推荐）
+        top_k: 匹配数量（默认 15）
 
     返回:
-        (injection_text, matches, replicas) 三元组。
-        - injection_text: 可直接注入系统 prompt 的 ``<strand_context>`` 文本
-        - matches: 初始匹配的实体列表
-        - replicas: 虫洞展开的新实体列表
+        (injection_text, matches, []) 三元组。
+        - injection_text: 可直接注入的 ``<strand_context>`` 文本
+        - matches: 匹配的实体列表
+        - replicas: 空列表（保留参数以兼容旧代码）
 
     如果无匹配，返回 ("", [], [])。
     """
@@ -54,9 +57,8 @@ def prefetch(
     if not matches:
         return ("", [], [])
 
-    replicas = wormhole_expand(matches, entities, max_hops=max_hops)
-    result = _format_for_injection(matches + replicas)
-    return (result, matches, replicas)
+    result = _format_for_injection(matches)
+    return (result, matches, [])
 
 
 __all__ = [

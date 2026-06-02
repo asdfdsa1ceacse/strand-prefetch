@@ -13,7 +13,7 @@
 import sys, os, json, time, math, statistics
 
 sys.path.insert(0, os.path.expanduser("~"))
-from strand_prefetch import prefetch, extract_dna_signal, magnetic_resonance, wormhole_expand
+from strand_prefetch import prefetch, extract_dna_signal, magnetic_resonance, wormhole_expand, set_budget
 from strand_prefetch.pool import MemoryPool
 
 # ── 加载数据 ──

@@ -25,12 +25,12 @@ print(result)
   ↓
 extract_dna_signal()   字符级信号留存（无词表，不分类）
   ↓
-magnetic_resonance()   磁吸共振（字符/子串/精确三级）
-  ↓
-wormhole_expand()      虫洞联想展开（固定能量 0.7，1跳）
+magnetic_resonance()   磁吸匹配（top_k=15，保证精度）
   ↓
 _format_for_injection() <strand_context> 注入格式
 ```
+
+**纯匹配模式，无虫洞展开。** 所有注入实体都经过同一套查询 DNA 信号筛选，不引入二跳噪音。`wormhole_expand()` 作为底层函数保留，供有特殊需求时直接调用。
 
 ## 安装
 
