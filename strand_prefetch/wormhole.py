@@ -1,10 +1,19 @@
-"""虫洞展开——联想激发。（默认关闭）
+"""Wormhole Expansion / 虫洞展开（可选联想层）
 
-可从种子实体出发，用每个实体的 DNA 信号独立激发新磁吸。
-复制体固定能量 0.7，不衰减，不修改原始实体。
+Associative expansion from seed entities. Each seed independently emits its DNA signal
+to find neighbors via magnetic resonance. Replicas have fixed energy 0.7, never decay,
+never modify original entities.
 
-注意：prefetch() 默认不使用虫洞展开。
-如需要绕过精度损失，可直接调用本函数。
+从种子实体出发的联想展开。每个种子独立用 DNA 信号寻找邻居。
+复制体固定能量 0.7，永不衰减，不修改原始实体。
+
+⚠️ Note / 注意:
+    The default prefetch() uses PURE MATCHING only (no wormhole).
+    Wormhole expansion is available as a lower-level function for specific use cases
+    where broader recall is desired, accepting the precision tradeoff.
+
+    默认 prefetch() 使用纯匹配模式（无虫洞展开）。
+    本函数作为底层接口保留，适用于需要广度联想、接受精度折损的场景。
 """
 
 from typing import Dict, List
@@ -18,20 +27,21 @@ def wormhole_expand(
     entities: list[dict],
     max_hops: int = 1,
 ) -> list[dict]:
-    """虫洞展开：种子实体的 DNA 信号独立激发磁吸。
+    """Wormhole expansion / 虫洞展开
 
-    每跳计算种子实体的 DNA 信号，用该信号对完整实体池做磁吸匹配，
-    找到新邻居（未出现在 seeds 或之前跳中的实体）。
-    复制体固定能量 0.7，不衰减。
+    Each hop: for each current seed, extract its DNA signal, run magnetic_resonance
+    to find up to 5 neighbors not yet seen. New neighbors become the next hop's seeds.
 
-    参数:
-        seeds: 初始种子实体列表
-        entities: 完整实体池
-        max_hops: 展开跳数。1 跳只展开一层邻居（推荐），
-                  >1 跳会进一步扩散但精度下降。
+    每跳：对每个当前种子提取 DNA 信号，磁吸匹配找最多 5 个未见邻居。
+    新邻居成为下一跳的种子。
 
-    返回:
-        按展开顺序排列的新实体列表（不含 seeds）。
+    Args:
+        seeds: Initial matched entities / 初始匹配实体
+        entities: Full entity pool / 完整实体池
+        max_hops: Expansion depth (1 recommended) / 展开深度（推荐 1）
+
+    Returns:
+        New entities found through expansion (not including seeds) / 新发现的实体
     """
     seen_ids = {e.get("id") for e in seeds if e.get("id")}
     replicas: list[dict] = []
@@ -53,7 +63,7 @@ def wormhole_expand(
                 nb_id = nb.get("id")
                 if nb_id and nb_id not in seen_ids:
                     probe = dict(nb)
-                    probe["energy"] = 0.7  # 固定能量，不衰减
+                    probe["energy"] = 0.7  # Fixed energy, no decay / 固定能量不衰减
                     seen_ids.add(nb_id)
                     next_replicas.append(probe)
 

@@ -1,6 +1,22 @@
-"""实体池管理——加载/保存 JSON 格式的记忆池。
+"""Memory Pool Manager / 实体池管理
 
-纯 stdlib 实现，零外部依赖。
+Minimal entity pool for loading/saving JSON-format memory pools.
+Zero external dependencies — pure Python stdlib.
+Designed for the standalone strand-prefetch package.
+
+最小化实体池，用于加载/保存 JSON 格式的记忆池。
+零外部依赖——纯 Python stdlib。
+为独立版 strand-prefetch 包设计。
+
+Entity format / 实体格式::
+    {
+        "id": str,           # Unique identifier / 唯一标识
+        "text": str,         # Natural language description (DNA extracted from this)
+        "energy": float,     # Energy value 0.0~1.0 / 能量值
+        "source": str,       # Source tag / 来源标签
+        "pinned": bool,      # Immune to ecosystem culling / 免疫生态淘汰
+        "dna": dict,         # Optional cached DNA signal / 可选缓存的 DNA 信号
+    }
 """
 
 import json
@@ -9,18 +25,7 @@ from typing import Any, Dict, List, Optional
 
 
 class MemoryPool:
-    """内存实体池。
-
-    实体格式::
-        {
-            "id": str,
-            "text": str,       # 自然语言描述（DNA 从此提取）
-            "energy": float,   # 能量值，0.0~1.0
-            "source": str,     # 来源标签
-            "pinned": bool,    # True=免疫生态淘汰
-            "dna": dict,       # 可选，缓存的 DNA 信号
-        }
-    """
+    """In-memory entity pool / 内存实体池"""
 
     def __init__(self) -> None:
         self.entities: list[dict] = []
@@ -35,7 +40,7 @@ class MemoryPool:
         energy: float = 0.5,
         pinned: bool = False,
     ) -> dict:
-        """添加一个新实体。"""
+        """Add a new entity / 添加新实体"""
         ent = {
             "id": eid,
             "text": text,
@@ -51,14 +56,14 @@ class MemoryPool:
         return ent
 
     def get(self, eid: str) -> Optional[dict]:
-        """按 ID 查找实体。"""
+        """Find entity by ID / 按 ID 查找"""
         for e in self.entities:
             if e.get("id") == eid:
                 return e
         return None
 
     def remove(self, eid: str) -> bool:
-        """删除实体。"""
+        """Remove entity by ID / 按 ID 删除"""
         before = len(self.entities)
         self.entities = [e for e in self.entities if e.get("id") != eid]
         self.pinned.discard(eid)
@@ -66,7 +71,7 @@ class MemoryPool:
         return len(self.entities) < before
 
     def save(self, path: str) -> None:
-        """保存到 JSON 文件。"""
+        """Save to JSON file / 保存到 JSON 文件"""
         data = {
             "entities": self.entities,
             "pinned": list(self.pinned),
@@ -78,7 +83,7 @@ class MemoryPool:
 
     @classmethod
     def load(cls, path: str) -> "MemoryPool":
-        """从 JSON 文件加载。"""
+        """Load from JSON file / 从 JSON 文件加载"""
         pool = cls()
         with open(path, encoding="utf-8") as f:
             data = json.load(f)

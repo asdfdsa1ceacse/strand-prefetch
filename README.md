@@ -1,113 +1,154 @@
 # Strand Prefetch
 
-字符级 DNA 信号留存 + 磁吸共振 + 虫洞展开 — 零依赖认知预取管线。
+> **DNA 是指纹，不是标签。匹配是坐标共振，不是语义翻译。**
+> **DNA is a fingerprint, not a label. Matching is coordinate resonance, not semantic translation.**
+
+Zero-dependency cognitive prefetch pipeline for AI agents. Character-level DNA signal extraction + magnetic resonance matching + context injection.
+
+零依赖 AI 智能体认知预取管线。字符级 DNA 信号提取 + 磁吸共振匹配 + 上下文注入。
 
 ```python
 from strand_prefetch import prefetch
 from strand_prefetch.pool import MemoryPool
 
 pool = MemoryPool.load("data/seed_pool.json")
-result, matches, replicas = prefetch("帮我修一下wsl", pool.entities)
+result, matches, _ = prefetch("帮我修一下wsl", pool.entities)
 print(result)
 # → <strand_context> ... </strand_context>
 ```
 
-## 核心思想
+## Benchmark / 基准测试
 
-传统语义搜索依赖词表、嵌入向量、分类标签。Strand Prefetch 完全不同：
+| 维度 | 指标 | 结果 |
+|------|------|------|
+| Speed / 速度 | Average / 平均 | **9ms** (seed) / **110ms** (994 pool) |
+| Precision / 精度 | Top-1 | **86%** |
+| | P@5 | **74%** |
+| Response / 响应 | P95 | **13ms** |
+| Memory / 内存 | RSS | **14.1 MB** |
+| Dependencies / 依赖 | pip packages | **zero** |
 
-**DNA 是指纹，不是标签。** 从文本的原始字符结构中提取信号，不做"分类"——不做"这个 token 属于什么类别"的决定。匹配是坐标共振，不是语义相似度。
-
-## 管线
+## Pipeline / 管线
 
 ```
-查询文本
+Query / 查询
   ↓
-extract_dna_signal()   字符级信号留存（无词表，不分类）
+extract_dna_signal()    Character-level / 字符级 (无词表, <0.01ms)
   ↓
-magnetic_resonance()   磁吸匹配（top_k=15，保证精度）
+magnetic_resonance()    Top-k=15 matching / 磁吸匹配 (三级共振)
   ↓
-_format_for_injection() <strand_context> 注入格式
+<strand_context>        Formatted injection / 格式化注入 (800-3500 chars)
 ```
 
-**纯匹配模式，无虫洞展开。** 所有注入实体都经过同一套查询 DNA 信号筛选，不引入二跳噪音。`wormhole_expand()` 作为底层函数保留，供有特殊需求时直接调用。
+**Pure matching mode — no wormhole expansion.** All entities filtered through the same query DNA signal. `wormhole_expand()` available as low-level function.
 
-## 安装
+**纯匹配模式，无虫洞展开。** 所有注入实体经同一套查询 DNA 信号筛选。`wormhole_expand()` 作为底层函数保留。
+
+## 8-Chip Architecture / 8 芯片架构
+
+| Chip / 芯片 | Role / 角色 |
+|-------------|------------|
+| **Encoder** | DNA encoding / 多链 DNA 编码 |
+| **Matcher** | Weighted voting / 加权投票匹配 |
+| **Predator** | Cannibalize & evolve / 吞噬演化 |
+| **Lifecycle** | Ebbinghaus decay / 艾宾浩斯衰减 |
+| **Immune** | Disagreement learning / 分歧学习 |
+| **Regulate** | Intent collision / 意图碰撞检测 |
+| **Router** | Graph routing / 图路由 |
+| **Pool** | Entity storage / 实体存储 |
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for full explanation of each chip.
+详见 [ARCHITECTURE.md](ARCHITECTURE.md) 完整架构说明。
+
+## Install / 安装
 
 ```bash
-git clone https://github.com/zym15/strand-prefetch.git
+# From GitHub / 从 GitHub
+pip install git+https://github.com/asdfdsa1ceacse/strand-prefetch.git
+
+# Or locally / 或本地
+git clone https://github.com/asdfdsa1ceacse/strand-prefetch.git
 cd strand-prefetch
 pip install -e .
 ```
 
-## 使用
+## Usage / 使用
 
 ### Python API
 
 ```python
-from strand_prefetch import prefetch
+from strand_prefetch import prefetch, extract_dna_signal, coordinate_resonance
 from strand_prefetch.pool import MemoryPool
 
+# Load pool / 加载实体池
 pool = MemoryPool.load("data/seed_pool.json")
-result, matches, replicas = prefetch("github怎么创建pr", pool.entities)
 
-# result: <strand_context> 格式的注入文本
-# matches: 初始匹配的 top-5 实体（含 _score）
-# replicas: 虫洞展开的新实体
+# Run pipeline / 运行管线
+result, matches, _ = prefetch("github怎么创建pr", pool.entities)
+print(result)
+# → <strand_context> ... </strand_context>
+
+# Inspect DNA signal / 查看 DNA 信号
+sig = extract_dna_signal("GPU成本优化")
+print(sig)
+# → {'domain': ['gpu'], 'entity': ['成本优化'], 'pattern': [], 'context': []}
 ```
 
 ### CLI
 
 ```bash
-# 基本查询
+# Query / 查询
 python examples/cli.py "帮我修一下wsl"
 
-# 只看 DNA 信号
+# Show DNA signal only / 只看 DNA 信号
 python examples/cli.py "GPU成本优化" --signal
-#  domain: gpu
-#  entity: 成本优化
 
-# 检查实体池
+# Inspect pool / 检查实体池
 python examples/cli.py --inspect
-#  实体: 22
-#  Pinned: 10
-#  来源分布: {'seed': 19, 'hub_3d': 3}
 ```
 
-## 性能基准
+### Benchmark / 跑基准
 
-| 操作 | 耗时 |
-|------|------|
-| DNA 信号留存 | < 0.01ms |
-| 磁吸匹配（649 实体） | ~11ms |
-| 虫洞展开 1 跳 | ~35ms |
-| 全链路（典型） | ~50ms |
+```bash
+python examples/benchmark.py
+```
 
-## 项目结构
+## Project Structure / 项目结构
 
 ```
 strand-prefetch/
-├── strand_prefetch/
-│   ├── __init__.py      # 公共 API: prefetch()
-│   ├── dna.py           # extract_tokens, extract_dna_signal
-│   ├── resonance.py     # coordinate_resonance, magnetic_resonance
-│   ├── wormhole.py      # wormhole_expand
-│   ├── render.py        # _format_for_injection
-│   └── pool.py          # MemoryPool 实体池管理
+├── ARCHITECTURE.md          # Full architecture / 完整架构文档
+├── README.md                # This file
+├── pyproject.toml           # Package config
+├── LICENSE                  # MIT
+├── strand_prefetch/         # Core pipeline / 核心管线
+│   ├── __init__.py          #   Public API
+│   ├── dna.py               #   DNA signal extraction
+│   ├── resonance.py         #   Magnetic matching
+│   ├── wormhole.py          #   Wormhole expansion
+│   ├── render.py            #   Context formatting
+│   └── pool.py              #   Memory pool manager
+├── chips/                   # 8-chip reference / 8芯片参考
+│   ├── __init__.py
+│   ├── encoder.py matcher.py predator.py
+│   ├── lifecycle.py immune.py regulate.py
+│   ├── router.py pool.py
 ├── data/
-│   └── seed_pool.json   # 种子实体池（22 实体）
-├── examples/
-│   ├── basic.py         # Python API 示例
-│   └── cli.py           # CLI 工具
-├── pyproject.toml
-├── README.md
-└── LICENSE
+│   └── seed_pool.json       # Demo entity pool
+└── examples/
+    ├── basic.py             # Python API demo
+    ├── cli.py               # CLI tool
+    └── benchmark.py         # 7-dimension benchmark
 ```
 
-## 零依赖
+## Philosophy / 哲学
 
-纯 Python stdlib，无第三方依赖。只需要 Python ≥ 3.10。
+1. **DNA is a fingerprint, not a label** — extracted from inherent structure, not assigned
+2. **Matching is resonance, not translation** — character-level coordinate overlap
+3. **Pure matching beats associative expansion** — one hop is optimal
+4. **Zero external dependencies** — pure stdlib, no GPU, no vector DB
+5. **Deterministic and inspectable** — same input = same output, traceable scores
 
-## License
+## License / 许可
 
 MIT

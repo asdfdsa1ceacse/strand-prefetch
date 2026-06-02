@@ -1,24 +1,41 @@
-"""上下文渲染——将实体列表格式化为注入文本。
+"""Context Injection Formatter / 上下文注入格式化
 
-受 token 预算约束，按分数降序注入。
+Renders matched entities into ``<strand_context>`` tags for LLM system prompt injection.
+Token-budget constrained, score-ordered.
+
+将匹配的实体渲染为 ``<strand_context>`` 标签，用于 LLM 系统 prompt 注入。
+受 Token 预算约束，按分数顺序输出。
 """
 
-_CONTEXT_BUDGET = 8000
+_CONTEXT_BUDGET = 8000  # Max chars before closing tag / 关闭标签前最大字符数
 
 
 def _format_for_injection(entities: list[dict]) -> str:
-    """将实体渲染为 ``<strand_context>`` 注入文本。
+    """Render entities as ``<strand_context>`` / 将实体渲染为注入文本
 
-    格式::
+    Format / 格式::
+
         <strand_context>
           [source][E=energy] dna_preview text_preview
         </strand_context>
 
-    按实体出现顺序排列（种子在前，虫洞在后）。
-    每条截断 150 字符，超过 budget 即停止。
+    Each entity is truncated to 150 chars. Stops when budget is exhausted.
+    Matches (seeds) are listed first, followed by wormhole replicas (if any).
+
+    每个实体截断至 150 字符。预算耗尽时停止。
+    种子实体在前，虫洞复制体在后。
+
+    Args:
+        entities: List of entity dicts / 实体字典列表
+
+    Returns:
+        Formatted string, or empty on no entities / 格式化字符串
     """
+    if not entities:
+        return ""
+
     lines = ["<strand_context>"]
-    remaining = _CONTEXT_BUDGET - len("\n".join(lines)) - 20  # 留关闭标签空间
+    remaining = _CONTEXT_BUDGET - len("\n".join(lines)) - 20
 
     for e in entities:
         text = (e.get("text") or "")[:150].replace("\n", " ")
@@ -46,6 +63,6 @@ def _format_for_injection(entities: list[dict]) -> str:
 
 
 def set_budget(chars: int) -> None:
-    """设置注入文本的字符预算上限（默认 8000）。"""
+    """Set max context budget in chars (default: 8000) / 设置最大上下文预算（字符数）"""
     global _CONTEXT_BUDGET
     _CONTEXT_BUDGET = chars

@@ -1,7 +1,22 @@
-"""磁吸共振——字符/子串/精确三级坐标共振。
+"""Magnetic Resonance / 磁吸共振
 
-查询的 DNA 信号 vs 实体 DNA 坐标，
-通过三层结构重叠打分，不依赖语义对齐。
+Three-layer coordinate resonance between query DNA and entity DNA.
+查询 DNA 与实体 DNA 之间的三级坐标共振。
+
+Core principle / 核心原则:
+    Matching is resonance, not translation. Character-level coordinate overlap,
+    not semantic similarity. No embeddings, no vectors, no models.
+
+    匹配是共振不是翻译。字符级坐标重叠，不是语义相似度。
+    无嵌入、无向量、无模型。
+
+Three layers / 三级:
+    1. Character  / 字符级 — single char overlap / 单字符重叠 (x0.3)
+    2. Substring  / 子串级 — 2+ char consecutive fragment / 连续片段 (x0.3)
+    3. Exact     / 精确级 — full token identity / 完整 token 相同 (x0.4)
+
+All entities scored in ONE pass. Deterministic. Inspectable.
+所有实体一次扫描完成打分。确定性。可追溯。
 """
 
 from typing import Dict, List
@@ -9,8 +24,10 @@ from typing import Dict, List
 from .dna import extract_dna_signal
 
 
+# ── Helpers / 辅助函数 ──
+
 def _flatten(dna: dict[str, list[str]]) -> list[str]:
-    """展平 DNA 4 链为 token 列表。"""
+    """Flatten 4-chain DNA into a single token list / 展平 4 链为单层 token 列表"""
     result: list[str] = []
     for vals in dna.values():
         if isinstance(vals, list):
@@ -20,19 +37,22 @@ def _flatten(dna: dict[str, list[str]]) -> list[str]:
     return result
 
 
+# ── Core / 核心 ──
+
+
 def coordinate_resonance(
     query: dict[str, list[str]],
     entity: dict[str, list[str]],
 ) -> float:
-    """三级共振打分。
+    """Three-layer coordinate resonance scoring / 三级坐标共振打分
 
-    三层结构重叠，逐层加权求和：
-      1. 字符级（单字符重叠 × 0.3）
-      2. 子串级（2+字符连续片段重叠 × 0.3）
-      3. 精确级（完整 token 匹配 × 0.4）
+    Each layer uses Jaccard-like overlap: common / union.
+    Weighted sum: character(0.3) + substring(0.3) + exact(0.4).
+    Returns 0.0 (no overlap) ~ 1.0 (identical).
 
-    返回 0.0~1.0 的浮点分数。
-    0 = 无重叠，1 = 完全一致。
+    每层使用类似 Jaccard 的重叠率：共同集 / 并集。
+    加权求和：字符(0.3) + 子串(0.3) + 精确(0.4)。
+    返回 0.0（无重叠）~ 1.0（完全一致）。
     """
     score = 0.0
     q_all = _flatten(query)
@@ -40,14 +60,14 @@ def coordinate_resonance(
     if not q_all or not e_all:
         return 0.0
 
-    # 1. 字符级
+    # Layer 1: Character-level / 字符级
     q_chars: set[str] = set("".join(q_all))
     e_chars: set[str] = set("".join(e_all))
     if q_chars and e_chars:
         common_chars = q_chars & e_chars
         score += len(common_chars) / max(len(q_chars | e_chars), 1) * 0.3
 
-    # 2. 子串级（重叠双字）
+    # Layer 2: Substring-level (overlapping bigrams) / 子串级（重叠双字）
     q_bigrams: set[str] = set()
     for token in q_all:
         for i in range(len(token) - 1):
@@ -60,7 +80,7 @@ def coordinate_resonance(
         common_bigrams = q_bigrams & e_bigrams
         score += len(common_bigrams) / max(len(q_bigrams | e_bigrams), 1) * 0.3
 
-    # 3. 精确级
+    # Layer 3: Exact token match / 精确 token 匹配
     q_set: set[str] = set(q_all)
     e_set: set[str] = set(e_all)
     if q_set and e_set:
@@ -75,13 +95,22 @@ def magnetic_resonance(
     entities: list[dict],
     top_k: int = 5,
 ) -> list[dict]:
-    """磁吸匹配：查询 DNA 信号 vs 所有实体的实时 DNA 坐标。
+    """Magnetic matching / 磁吸匹配
 
-    始终从实体 text 字段实时提取 DNA 信号，
-    不依赖实体存储的旧格式 DNA。
+    Scores ALL entities against the query DNA signal in one pass.
+    Always extracts DNA from entity's live `text` field — never relies on stale cached DNA.
+    Returns top_k entities sorted by score descending, each with an additional `_score` field.
 
-    返回按分数降序排列的 top_k 实体列表，
-    每个实体附加 ``_score`` 字段。
+    一次扫描评估所有实体。始终从实体的实时 text 字段提取 DNA。
+    返回按分数降序排列的 top_k 实体，每个带 `_score` 字段。
+
+    Args:
+        query_signal: Query DNA from extract_dna_signal / 查询的 DNA 信号
+        entities: Pool of entity dicts (each must have "text" key) / 实体字典列表
+        top_k: Max results to return / 最大返回数
+
+    Returns:
+        Entities with _score added, sorted by relevance / 带 _score 的实体列表
     """
     if not query_signal or not entities:
         return []
